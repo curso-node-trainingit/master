@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>WebSockets - Simple chat</title>
+
+        <style>
+        * { font-family:tahoma; font-size:12px; padding:0px; margin:0px; }
+        p { line-height:18px; }
+        div { width:500px; margin-left:auto; margin-right:auto;}
+        #content { padding:5px; background:#ddd; border-radius:5px; overflow-y: scroll;
+                   border:1px solid #CCC; margin-top:10px; height: 160px; }
+        #input { border-radius:2px; border:1px solid #ccc;
+                 margin-top:10px; padding:5px; width:400px;  }
+        #status { width:88px; display:block; float:left; margin-top:15px; }
+        </style>
+    </head>
+    <body>
+        <div id="content"></div>
+        <div>
+            <span id="status">Conectando...</span>
+            <input type="text" id="input" disabled="disabled" />
+        </div>
+
+<script>
+    "use strict";
+
+    var content = document.getElementById('content');
+    var input = document.getElementById('input');
+
+    var myColor = false;
+    var myName = false;
+
+    window.WebSocket = window.WebSocket || window.MozWebSocket;
+    var connection = new WebSocket('ws://127.0.0.1:1338');
+
+    connection.onopen = function () {
+        input.removeAttribute('disabled');
+        document.getElementById('status').innerHTML = 'Tu nombre:';
+    };
+
+    connection.onerror = function (error) {
+	var elemento = document.createElement('p'); 
+	var mensaje = document.createTextNode('Lo sentimos, es posible que existan problemas de conexión o el servidor esté caido.'); 
+	elemento.appendChild(mensaje);
+	content.appendChild(elemento);
+    };
+
+    connection.onmessage = function (message) {
+        try {
+            var json = JSON.parse(message.data);
+        } catch (e) {
+            console.log('Este mensaje no parece que sea de tipo JSON: ', message.data);
+            return;
+        }
+
+        if (json.type === 'color') {
+            myColor = json.data;
+            document.getElementById('status').innerHTML = myName + ': ';
+	    document.getElementById('status').style.color = myColor;
+            input.removeAttribute('disabled');
+        } else if (json.type === 'history') {
+            for (var i=0; i < json.data.length; i++) {
+                addMessage(json.data[i].author, json.data[i].text,
+                           json.data[i].color, new Date(json.data[i].time));
+            }
+        } else if (json.type === 'message') {
+            input.removeAttribute('disabled');
+            addMessage(json.data.author, json.data.text, json.data.color, new Date(json.data.time));
+        } else {
+            console.log('Hmm..., Creo que este mensaje del servidor no lo entiendo: ', json);
+        }
+    };
+
+    function addMessage(autor, message, color, dt) {
+	var elemento = document.createElement('p');
+	var elementoSpan = document.createElement('span');
+	elementoSpan.style.color = color;
+	var autor = document.createTextNode(autor); 
+	elementoSpan.appendChild(autor);
+	elemento.appendChild(elementoSpan);
+	var mensaje = document.createTextNode(' @ ' +
+             + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
+             + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
+             + ': ' + message + '');
+	elemento.appendChild(mensaje);
+	content.appendChild(elemento);
+	content.scrollTop = content.scrollHeight;
+    }
+
+    input.addEventListener("keyup", function(event){
+        if (event.keyCode === 13) {
+            var msg = input.value;
+            if (!msg) {
+                return;
+            }
+            connection.send(msg);
+            input.value = '';
+
+            if (myName === false) {
+                myName = msg;
+            }
+        }
+    });
+</script>
+    </body>
+</html>

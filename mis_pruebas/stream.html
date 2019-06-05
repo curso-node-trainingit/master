@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>WEB :: Prueba de Stream</title>
+</head>
+
+<body>
+
+  <div id="documento"></div>
+
+<script>
+	var documento = document.getElementById('documento');
+	var xhr = new XMLHttpRequest();
+	
+	xhr.open("GET", "/loadStream", true);
+	xhr.onprogress = function () {
+		documento.innerHTML += "<br><br><br><b style=\"color:blue;\">PORCION:</b><br><br>" + xhr.responseText;
+	}
+
+	xhr.send()
+</script>
+
+</body>
+
+</html>
